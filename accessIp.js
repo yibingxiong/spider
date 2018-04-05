@@ -1,57 +1,71 @@
-var request = require('superagent');
-var cheerio = require('cheerio');
+/**
+ * 查找可用的代理服务器
+ */
+const request = require('superagent');
+const cheerio = require('cheerio');
+const util =  require('./util.js');
+const config = require('./config.js');
+const uaList = config.uaList;
+const uaListLen = uaList.length;
+const testHost = config.testHost;
+const testHostLen = testHost.length;
 
-require('superagent-proxy')(request)
+require('superagent-proxy')(request);
+require("babel-core/register");
+require("babel-core").transform("code", {
+    plugins: ["transform-runtime"]
+});
 
-let accesIps = [];
-let pageCount = 0;
 
-for (let curpage = 1; curpage < 11; curpage++) {
-    (function(curpage){
-        request.get('http://www.xicidaili.com/nn/' + curpage)
-        .set({
-            'Content-Type': 'text/html; charset=utf-8',
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"
-        })
-        .end((err, res) => {
-            pageCount++;
-            if(pageCount === 10) {
-                console.log(accesIps);
-                return;
-            }
-            if (err) {
-                console.log(err);
-                console.log('err');
-            } else {
-                let $ = cheerio.load(res.text);
-                let trs = $('tr');      // 一页里边所有的行
-                let count = 0;
-                for (let line = 1; line < trs.length; line++) {
-                    let td = $(trs[line]).children('td');
-                    let ip = td[1].children[0].data;
-                    let port = td[2].children[0].data;
-                    let proxyHost = `http://${ip}:${port}`;
+let accesIps = [];          // 有效的代理服务器
+const TOTALPAGE = 20;       // 一共要请求多少页
+const ONEPAGEDELAY = 1000;  // 请求一页后的延迟时间
+const TIMEOUT = 3000;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
+const ONETESTDELAY = 0;   // 测试完一台代理服务器后的延迟
+let testNum = 0;           // 测试的proxy host数量
 
-                    try {
-                        //代理IP请求，设置超时为3000ms，返回正确即当可用
-                        var testip = request.get('http://cnodejs.org/topic/5203a71844e76d216a727d2e')
-                            .proxy(proxyHost)
-                            .timeout(3000)
-                            .end((err, res) => {
-                                count++;
-                                if (!err) {
-                                    accesIps.push(proxyHost);
-                                }
-                                if (count === trs.length - 1) {       // 第一行没有要
-                                    
-                                }
-                            });
-                    } catch (error) {
-                        console.log(error);
-                        count++;
-                    }
+async function getProxy() {
+    console.info('正在获取可用的代理服务，请稍后...');
+    for(let i = 1; i <= TOTALPAGE; i++ ) {
+        try {
+            let pageRes = await  request.get('http://www.xicidaili.com/nn/' + i)
+            .set({
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'User-Agent': uaList[util.getRandom(uaListLen-1)]
+                });
+            let $ = cheerio.load(pageRes.text);
+            let trs = $('tr');
+            let trLen = trs.length;
+            for(let line  = 1; line < trLen; line++) {
+                let td = $(trs[line]).children('td');
+                let ip = td[1].children[0].data;
+                let port = td[2].children[0].data;
+                let proxyHost = `http://${ip}:${port}`;
+                testNum++;
+
+                try { 
+                    let testRes = await request.get(testHost[util.getRandom(testHostLen-1)])
+                    .proxy(proxyHost)
+                    .set({
+                        'Content-Type': 'text/html; charset=utf-8',
+                        'User-Agent': uaList[util.getRandom(uaListLen-1)]
+                    })
+                    .timeout(TIMEOUT);
+
+                    console.log(`测试第${testNum}个:${proxyHost}可用`);
+                    accesIps.push(proxyHost);
+                    await util.delay(ONETESTDELAY);
+                }catch(err) {
+                    console.log(`测试第${testNum}个:${proxyHost}失败`);
                 }
             }
-        })
-    })(curpage);
+            await util.delay(ONEPAGEDELAY);
+        }catch(e) {
+            console.log(e);
+        }
+    }
+
+    return accesIps;
 }
+getProxy();
+module.exports = getProxy;
