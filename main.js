@@ -225,7 +225,7 @@ async function writeComment(commentPageTotal, mainId) {
             try {
               let writeRes = await commentWorkBook.xlsx.writeFile(commentPath);
               console.log(`写评论成功${mainId}-${curCommentPageNum}-${j}`);
-              await util.delay(300);     // 读写io台频繁会出错
+              await util.delay(400);     // 读写io台频繁会出错
               successComment++;
               break;
             }catch(err) {
