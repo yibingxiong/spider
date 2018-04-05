@@ -106,8 +106,6 @@ async function main(pageStart, pageEnd, mainPath, commentPath1,hostpageStart,hos
             console.error(`第${curPageNum}个列表页出错`);
         }
       }
-      // 请求完一个列表页
-      await util.delay(LIST_DELAY);
     }
     console.log(`第${curPageNum}页帖子完成！`);
   }
@@ -174,6 +172,7 @@ async function requestDetailPage(href) {
       break; 
     }catch(e) {
       if(i >= RETRY_NUM - 1) {
+        await util.delay(1000 * 60);   // 多等等
         console.error(`请求id为${mainId}的帖子详情出错`);
         throw new Error(e);
       }
@@ -226,12 +225,13 @@ async function writeComment(commentPageTotal, mainId) {
             try {
               let writeRes = await commentWorkBook.xlsx.writeFile(commentPath);
               console.log(`写评论成功${mainId}-${curCommentPageNum}-${j}`);
-              await util.delay(120);     // 读写io台频繁会出错
+              await util.delay(300);     // 读写io台频繁会出错
               successComment++;
               break;
             }catch(err) {
               if(k >= RETRY_NUM - 1) {
                 console.error(`写评论出错${mainId}-${curCommentPageNum}-${j}`);
+                await util.delay(1000 * 60 * 5);   // 多等等
                 throw new Error(err);
               }
             }
@@ -240,12 +240,12 @@ async function writeComment(commentPageTotal, mainId) {
         break;
       }catch(e) {
         if(i >= RETRY_NUM - 1) {
-          
+          await util.delay(1000 * 60 * 5);   // 多等等
           console.log(`请求帖子${mainId}的第${curCommentPageNum}页评论列表失败`);
           throw new Error(e);
         }
       }
-      await util.delay(400);     // 请求完一个评论列表页
+      await util.delay(5000);     // 请求完一个评论列表页，一个评论列表页停机5秒
     }
     console.log(`请求帖子${mainId}的第${curCommentPageNum}页评论列表完成`)
   }
