@@ -118,18 +118,13 @@ function saveMainTiezi(url, callback) {
   }
   setTimeout(() => {
     saveMain(0);
-  }, 1000);
+  }, 10000);
  
 
-  setInterval(() => {
-    if(!isRes) {
-      saveMain(0);
-    }
-  },2000);
   setTimeout(() => {
     console.error('请求超时');
     return callback(new Error('请求超时'));
-  }, 10000);
+  }, 100000);
 }
 
 getManiList();
