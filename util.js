@@ -8,7 +8,17 @@ const delay = function (ms) {
 const getRandom = function (up) {
     return Math.ceil(Math.random()*up);
 }
+// 等级class转换为等级
+const levelClassToLevel = function(node) {
+    for(let i = 0; i < 30; i++) {
+        if(node.hasClass('vip_icon_m'+i) || node.hasClass('vip_icon_s'+i)){
+            return i;
+        }
+    }
+    return 0;
+}
 module.exports =  {
     delay,
     getRandom,
+    levelClassToLevel
 }

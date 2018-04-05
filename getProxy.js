@@ -18,13 +18,12 @@ require("babel-core").transform("code", {
 
 
 let accesIps = [];          // 有效的代理服务器
-const TOTALPAGE = 1;       // 一共要请求多少页
 const ONEPAGEDELAY = 1000;  // 请求一页后的延迟时间
-const TIMEOUT = 300;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
+const TIMEOUT = 2000;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
 const ONETESTDELAY = 0;   // 测试完一台代理服务器后的延迟
 let testNum = 0;           // 测试的proxy host数量
-
-async function getProxy() {
+let accessNum = 0;          // 可用的服务台数
+async function getProxy(TOTALPAGE) {
     console.info('正在获取可用的代理服务，请稍后...');
     for(let i = 1; i <= TOTALPAGE; i++ ) {
         try {
@@ -51,7 +50,7 @@ async function getProxy() {
                         'User-Agent': uaList[util.getRandom(uaListLen-1)]
                     })
                     .timeout(TIMEOUT);
-
+                    accessNum++;
                     console.log(`测试第${testNum}个:${proxyHost}可用`);
                     accesIps.push(proxyHost);
                     await util.delay(ONETESTDELAY);
@@ -65,6 +64,6 @@ async function getProxy() {
         }
     }
 
-    return accesIps;
+    return {accessNum,proxyHostList:accesIps};
 }
 module.exports = getProxy;
