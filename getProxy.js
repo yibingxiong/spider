@@ -13,7 +13,7 @@ const testHostLen = testHost.length;
 
 let accesIps = [];          // 有效的代理服务器
 const ONEPAGEDELAY = 1000;  // 请求一页后的延迟时间
-const TIMEOUT = 300;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
+const TIMEOUT = 2000;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
 const ONETESTDELAY = 0;   // 测试完一台代理服务器后的延迟
 let testNum = 0;           // 测试的proxy host数量
 let accessNum = 0;          // 可用的服务台数
