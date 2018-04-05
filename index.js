@@ -1,130 +1,147 @@
-var http = require('http');
-var cheerio = require('cheerio')
-var xlsx = require('node-xlsx');
-var fs = require('fs');
-var Excel = require('exceljs');
-var workbook = new Excel.Workbook();
-var worksheet = workbook.addWorksheet('小米论坛帖子')
-var worksheet2 = workbook.addWorksheet('评论')
+const request = require('superagent');
+const cheerio = require('cheerio')
+const fs = require('fs');
+const Excel = require('exceljs');
+const mainPageWorkBook = new Excel.Workbook();
+const commentWorkBook = new Excel.Workbook();
+const mainPage = mainPageWorkBook.addWorksheet('小米论坛帖子');
+const commentPage = commentWorkBook.addWorksheet('小米论坛评论');
+const util = require('./util.js');
+const config = require('./config.js');
+const getProxy = require('./getProxy.js');  // 代理服务器获取
+const dataPath = './data/main.xlsx'
+const uaList = config.uaList;     // userAgent列表
+const uaListLen = uaList.length;  // userAgent个数
+const RETRY_NUM = 5;              // 重试次数
+let curMainPage = 1;
+const START_PAGE_NUM = 1;         // 起始页码
+const END_PAGE_NUM = 1;          // 终止页码
+const MainPageUrl = 'http://bbs.xiaomi.cn/d-';  // 主贴子列表页
+const DetailPageUrl = 'http://bbs.xiaomi.cn/t-###-$$$-o1#comment_top'; // 帖子详情页url
+const TIMEOUT = 2000;   // 每次请求响应最大延迟
+let proxyList = [];  // 可用的代理服务器列表
+let proxyListLen = 0; // 可用代理服务器的个数
+async function main() {
+  // 帖子表头
+  mainPage.columns = [
+    { header: '帖子id', key: 'id' },
+    { header: '标题', key: 'title' },
+    { header: '发布时间', key: 'time' },
+    { header: '评论数', key: 'commentsnum' },
+    { header: '浏览量', key: 'readnum' }
+  ];
+  // 评论表头
+  commentPage.columns = [
 
-worksheet.columns = [
-  { header: '帖子id', key: 'id' },
-  { header: '标题', key: 'title' },
-  { header: '发布时间', key: 'time' },
-  { header: '评论数', key: 'commentsnum' },
-  { header: '浏览量', key: 'readnum' }
-];
-var pagestart = 1;
-var pageend = 10;
-var total = 0;
-var curpage = 1;    // 当前处理的帖子列表页码
-var listBaseUrl = 'http://bbs.xiaomi.cn/d-';  // 主贴子列表页
+  ];
 
-function getManiList() {
-  if (curpage > pageend) {
-    console.log('完成');
-    return;
-  }
-  try {
-    http.get(listBaseUrl + curpage, function (req, res) {
-      var html = '';
-      req.on('data', function (data) {
-        html += data;
-      });
-      req.on('end', function () {
-        var $ = cheerio.load(html);
-        var titlelistArr = [];
-
-        $(".theme_list .title a.title_name").each(function (i, elem) {
-          titlelistArr.push($(this))
-        })
-        console.log(titlelistArr[0].attr('href'));
-        (function (i, len, count, callback) {
-          for (; i < len; ++i) {
-            (function (i) {
-              var href = titlelistArr[i].attr('href');
-              var id = href.split('/t-')[1];
-              saveMainTiezi(href, (err) => {
-                total++;
-                if (!err) {
-                  console.log(`生成第${total}条主贴子`);
-                } else {
-                  console.error(err);
-                  console.log(`第${total}条主贴子出错，id = ${id}`);
-                }
-                count++;
-                if (count === len) {
-                  callback();
-                }
-              })
-            })(i);
-          }
-        })(0, titlelistArr.length, 0, () => {
-          curpage++;
-          getManiList();
-        })
-      });
-    })
-  } catch (e) {
-
-  }
-}
-
-function saveMainTiezi(url, callback) {
-  let isRes = false;
-  function saveMain(t) {
+  for (let i = 0; i < RETRY_NUM; i++) {
     try {
-      http.get(url, function (req, res) {
-        var html = '';
-        req.on('data', function (data) {
-          isRes = true;
-          html += data;
-        });
-        req.on('end', function () {
-          var $2 = cheerio.load(html);
-          var id = url.split('/t-')[1];
-          var title = $2('.invitation span.name').text().trim();
-          var time = $2('.invitation span.time').text().trim();
-          var commentsnum = $2($2('.invitation span.f_r')[0]).text().trim();
-          var readnum = $2($2('.invitation span.f_r')[1]).text().trim();
-          var r = [];
-          r[0] = id;
-          r[1] = title;
-          r[2] = time;
-          r[3] = commentsnum;
-          r[4] = readnum;
-          worksheet.addRow(r);
-          workbook.xlsx.writeFile('./data.xlsx')
-            .then(() => {
-              return callback();
-            })
-            .catch((err) => {
-              if(t<4) {
-                saveMain(t++);
-              }else {
-                return callback(err);
-              }
-            });
-
+      proxyList = await getProxy();
+      proxyList.push(config.localProxy);
+      proxyListLen = proxyList.length;
+      break;
+    } catch(err) {}
+  }
+  for(let curPageNum = START_PAGE_NUM ; curPageNum <= END_PAGE_NUM; ++curPageNum) {
+    for (let i = 0; i < RETRY_NUM; i++) {
+      try {
+        let mainPageRes = await request.get(`${MainPageUrl}${curPageNum}`)
+        .proxy(proxyList[util.getRandom(proxyListLen-1)])
+        .set({
+            'Content-Type': 'text/html; charset=utf-8',
+            'User-Agent': uaList[util.getRandom(uaListLen-1)]
         })
-      });
-    } catch (e) {
-      if(t<4) {
-        saveMain(t++);
-      }else {
-        return callback(e);
+        .timeout(TIMEOUT);
+        console.log(mainPageRes.text)
+        let $MainPage = cheerio.load(mainPageRes.text);
+        let titlelistArr = [];    // 一页列表的所有title
+
+        $MainPage(".theme_list .title a.title_name").each(function (i, elem) {
+          titlelistArr.push($MainPage(this));
+        });
+
+        for(let curTitleIndex = 0; curTitleIndex < titlelistArr.length; curTitleIndex++) {
+          let detailUrl = titlelistArr[curTitleIndex].attr('href');   // 某条帖子的详情url
+          console.log(detailUrl)
+          let mainId = detailUrl.split('/t-')[1];      // 帖子id
+          try {
+            let requestDetailPageRes = await requestDetailPage(detailUrl);
+            console.log(`帖子${mainId}写入成功`);
+          }catch(e2) {
+            console.error(e2);
+          }
+          await util.delay(300);
+        }
+        break;
+      } catch(err) {
+        console.error(err);
+        if(i === RETRY_NUM -1 ) { // 达到了最大重试次数，还出错
+            console.error(`第${curPageNum}个列表页出错`);
+        }
       }
+      await util.delay(1000);
     }
   }
-  setTimeout(() => {
-    saveMain(0);
-  }, 10000);
- 
-
-  setTimeout(() => {
-    console.error('请求超时');
-    return callback(new Error('请求超时'));
-  }, 100000);
+  
 }
 
-getManiList();
+// 请求详情页并保存帖子数据
+async function requestDetailPage(href) {
+  let mainId = href.split('/t-')[1];      // 帖子id
+  for (let i = 0; i < RETRY_NUM; i++) {
+    try {
+      let detailPageRes = await request.get(href)
+        .proxy(proxyList[util.getRandom(proxyListLen - 1)])
+        .set({
+          'Content-Type': 'text/html; charset=utf-8',
+          'User-Agent': uaList[util.getRandom(uaListLen - 1)]
+        })
+        .timeout(TIMEOUT);
+
+        let $2 = cheerio.load(detailPageRes.text);
+        let title = $2('.invitation span.name').text().trim();  // 帖子标题
+        let time = $2('.invitation span.time').text().trim();   // 发表时间
+        let commentsnum = $2($2('.invitation span.f_r')[0]).text().trim();  // 评论量
+        let readnum = $2($2('.invitation span.f_r')[1]).text().trim();    // 阅读量
+        
+        
+        let r = [];   // 一行数据，表一个帖子
+        r[0] = mainId;
+        r[1] = title;
+        r[2] = time;
+        r[3] = commentsnum;
+        r[4] = readnum;
+
+        mainPage.addRow(r);
+        for(let j = 0; j < RETRY_NUM; j++) {
+          try {
+            let writeRes = await mainPageWorkBook.xlsx.writeFile(dataPath);
+            break;
+          }catch(err) {
+            console.error(err);
+            if(j === RETRY_NUM - 1) {
+              console.error(`写入帖子id为${mainId}出错了`);
+              throw new Error(err);
+            }
+          }
+      }
+      break; 
+    }catch(e) {
+      console.error(e);
+      if(i >= RETRY_NUM - 1) {
+        console.error(`请求id为${mainId}的帖子详情出错`);
+        throw new Error(e);
+      }
+    }
+}
+
+}
+
+main()
+.then(res => {
+  console.log(res);
+})
+.catch(e => {
+  console.log(e);
+})

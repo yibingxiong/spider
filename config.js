@@ -20,5 +20,6 @@ module.exports = {
         'http://www.9991.com/',
         'http://www.mycodes.net/152/',
         'http://123.waaku.com/'
-    ]
+    ],
+    localProxy:'http://192.168.1.106:8888'
 }
