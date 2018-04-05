@@ -1,22 +1,30 @@
+require("babel-core/register");
+require("babel-core").transform("code", {
+    plugins: ["transform-runtime"]
+});
+
+
 const main = require('./main.js');
 /**
  * 参数1：起始页
  * 参数2:终止页
  * 参数3：帖子路径
  * 参数4：评论路径
- * 参数5 请求的代理服务器的页数 默认为 1
+ * 参数5 请求的代理服务器的起始页 默认为 1
+ * 参数6 请求代理服务器的结束页 默认1
  */
 
-let arguments = process.argv.splice(2);
+let args = process.argv.splice(2);
 
 
-let pageStart = arguments[0] || 1;
-let pageEnd = arguments[1] || 1;
-let mainPath = arguments[2] || './data/main.xlsx';
-let commentPath = arguments[3] || './data/comment.xlsx';
-let hostPageNum = arguments[4] || 1;
+let pageStart = args[0] || 1;
+let pageEnd = args[1] || 1;
+let mainPath = args[2] || './data/main.xlsx';
+let commentPath = args[3] || './data/comment.xlsx';
+let hostpageStart = args[4] || 1;
+let hostpageEnd = args[5] || 1;
 
-main(pageStart, pageEnd,mainPath,commentPath,hostPageNum)
+main(pageStart, pageEnd,mainPath,commentPath,hostpageStart,hostpageEnd)
 .then(res => {
     console.log('操作完成');
     console.log(`共写入帖子${res.successMain}个`);

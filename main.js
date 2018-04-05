@@ -33,8 +33,9 @@ const commentWorkBook = new Excel.Workbook();
 const mainPage = mainPageWorkBook.addWorksheet('小米论坛帖子');
 const commentPage = commentWorkBook.addWorksheet('小米论坛评论');
 
+require('superagent-proxy')(request);
 
-async function main(pageStart, pageEnd, mainPath, commentPath1,hostPageNum) {
+async function main(pageStart, pageEnd, mainPath, commentPath1,hostpageStart,hostpageEnd) {
   START_PAGE_NUM = pageStart;
   END_PAGE_NUM = pageEnd;
   commentPath = commentPath1;
@@ -61,10 +62,10 @@ async function main(pageStart, pageEnd, mainPath, commentPath1,hostPageNum) {
 
   for (let i = 0; i < RETRY_NUM; i++) {
     try {
-      let pro = await getProxy(hostPageNum);
+      let pro = await getProxy(hostpageStart,hostpageEnd);
       proxyList = pro.proxyHostList;
       console.log(`代理服务查找完毕,共${pro.accessNum}台可用`);
-      proxyList.push(config.localProxy);
+      if(config.localProxy) { proxyList.push(config.localProxy); }
       proxyListLen = proxyList.length;
       break;
     } catch(err) {}
@@ -225,7 +226,7 @@ async function writeComment(commentPageTotal, mainId) {
             try {
               let writeRes = await commentWorkBook.xlsx.writeFile(commentPath);
               console.log(`写评论成功${mainId}-${curCommentPageNum}-${j}`);
-              await util.delay(200);     // 读写io台频繁会出错
+              await util.delay(120);     // 读写io台频繁会出错
               successComment++;
               break;
             }catch(err) {

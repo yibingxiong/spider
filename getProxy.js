@@ -2,6 +2,7 @@
  * 查找可用的代理服务器
  */
 const request = require('superagent');
+require('superagent-proxy')(request);
 const cheerio = require('cheerio');
 const util =  require('./util.js');
 const config = require('./config.js');
@@ -10,22 +11,15 @@ const uaListLen = uaList.length;
 const testHost = config.testHost;
 const testHostLen = testHost.length;
 
-require('superagent-proxy')(request);
-require("babel-core/register");
-require("babel-core").transform("code", {
-    plugins: ["transform-runtime"]
-});
-
-
 let accesIps = [];          // 有效的代理服务器
 const ONEPAGEDELAY = 1000;  // 请求一页后的延迟时间
-const TIMEOUT = 2000;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
+const TIMEOUT = 300;        // 通过代理服务器请求有效响应时间，超出则认为是无效的
 const ONETESTDELAY = 0;   // 测试完一台代理服务器后的延迟
 let testNum = 0;           // 测试的proxy host数量
 let accessNum = 0;          // 可用的服务台数
-async function getProxy(TOTALPAGE) {
+async function getProxy(stpage,endpage) {
     console.info('正在获取可用的代理服务，请稍后...');
-    for(let i = 1; i <= TOTALPAGE; i++ ) {
+    for(let i = stpage; i <= endpage; i++ ) {
         try {
             let pageRes = await  request.get('http://www.xicidaili.com/nn/' + i)
             .set({
