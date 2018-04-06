@@ -17,7 +17,7 @@ let END_PAGE_NUM = 1;          // 终止页码
 const MainPageUrl = 'http://bbs.xiaomi.cn/d-';  // 主贴子列表页
 const DetailPageUrl = 'http://bbs.xiaomi.cn/t-###-$$$-o1#comment_top'; // 帖子详情页url
 
-const TIMEOUT = 2000;   // 每次请求响应最大延迟
+const TIMEOUT = 4000;   // 每次请求响应最大延迟
 let proxyList = [];  // 可用的代理服务器列表
 let proxyListLen = 0; // 可用代理服务器的个数
 const DETAIL_DELAY = 0; // 请求完一个详情页延时
@@ -234,9 +234,15 @@ async function writeComment(commentPageTotal, mainId) {
             try {
               commentPage.addRows(rows);
               let writeRes = await commentWorkBook.xlsx.writeFile(commentPath);
+<<<<<<< HEAD
               successComment+=20;
               console.log(`写评论成功${successComment} - ${mainId}-${curCommentPageNum}`);
               await util.delay(IO_DELAY);     // 读写io台频繁会出错
+=======
+              console.log(`写评论成功${mainId}-${curCommentPageNum}-${j}`);
+              await util.delay(400);     // 读写io台频繁会出错
+              successComment++;
+>>>>>>> 19491ab4c56c942e886a87327e7bde7b701a785f
               break;
             }catch(err) {
               if(k >= RETRY_NUM - 1) {
