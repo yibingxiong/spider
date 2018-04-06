@@ -17,8 +17,32 @@ const levelClassToLevel = function(node) {
     }
     return 0;
 }
+
+/**
+ *  生成1 - up 之间含1含up的n个不重复随机数
+ *  @param {number} 上限
+ *  @param {number} 个数
+ */
+const getRandomN = function(up, n) {
+    let set = new Set();
+
+    if(n >= up) {
+        for(let i = 1; i <= up; i++) {
+            set.add(i);
+        }
+    }else {
+        while(set.size < n) {
+            set.add(getRandom(up));
+        }
+    }
+
+    let res = [...set];
+    res.sort((v1, v2) => { return v1 - v2; });
+    return res;
+}
 module.exports =  {
     delay,
     getRandom,
-    levelClassToLevel
+    levelClassToLevel,
+    getRandomN
 }

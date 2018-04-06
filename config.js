@@ -19,7 +19,12 @@ module.exports = {
         'http://forum.elanw.com/',
         'http://www.9991.com/',
         'http://www.mycodes.net/152/',
-        'http://123.waaku.com/'
+        'http://123.waaku.com/',
+        'http://www.upanok.com/jiaocheng/68.html',
+        'http://hkjum1150212.51sole.com/',
+        'http://www.yieya.com/',
+        'http://www.bianbao.net/',
+        'http://www.lajiz.cn/'
     ],
     localProxy:'http://192.168.1.107:8888'
 }
