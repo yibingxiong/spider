@@ -21,5 +21,5 @@ module.exports = {
         'http://www.mycodes.net/152/',
         'http://123.waaku.com/'
     ],
-    localProxy:'http://192.168.1.106:8888'
+    localProxy:'http://192.168.1.107:8888'
 }
