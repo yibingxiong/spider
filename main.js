@@ -71,9 +71,12 @@ async function main(pageStart, pageEnd, mainPath, commentPath1, hostpageStart, h
       if (config.localProxy) { proxyList.push(config.localProxy); }
       proxyListLen = proxyList.length;
       break;
-    } catch (err) { }
+    } catch (err) { 
+      console.err(err);
+    }
   }
-  for (let curPageNum = START_PAGE_NUM; curPageNum <= END_PAGE_NUM; ++curPageNum) {
+
+  for (let curPageNum = START_PAGE_NUM; curPageNum <= END_PAGE_NUM; curPageNum++) {
     for (let i = 0; i < RETRY_NUM; i++) {
       try {
         let mainPageRes = await request.get(`${MainPageUrl}${curPageNum}`)

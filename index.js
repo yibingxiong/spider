@@ -23,7 +23,10 @@ let mainPath = args[2] || './data/main.xlsx';
 let commentPath = args[3] || './data/comment.xlsx';
 let hostpageStart = args[4] || 1;
 let hostpageEnd = args[5] || 1;
-
+pageStart = parseInt(pageStart,10);
+pageEnd = parseInt(pageEnd,10);
+hostpageStart = parseInt(hostpageStart,10);
+hostpageEnd = parseInt(hostpageEnd,10);
 main(pageStart, pageEnd,mainPath,commentPath,hostpageStart,hostpageEnd)
 .then(res => {
     console.log('操作完成');
