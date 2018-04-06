@@ -234,15 +234,9 @@ async function writeComment(commentPageTotal, mainId) {
             try {
               commentPage.addRows(rows);
               let writeRes = await commentWorkBook.xlsx.writeFile(commentPath);
-<<<<<<< HEAD
               successComment+=20;
               console.log(`写评论成功${successComment} - ${mainId}-${curCommentPageNum}`);
               await util.delay(IO_DELAY);     // 读写io台频繁会出错
-=======
-              console.log(`写评论成功${mainId}-${curCommentPageNum}-${j}`);
-              await util.delay(400);     // 读写io台频繁会出错
-              successComment++;
->>>>>>> 19491ab4c56c942e886a87327e7bde7b701a785f
               break;
             }catch(err) {
               if(k >= RETRY_NUM - 1) {
