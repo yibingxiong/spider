@@ -20,9 +20,12 @@ const DetailPageUrl = 'http://bbs.xiaomi.cn/t-###-$$$-o1#comment_top'; // 帖子
 const TIMEOUT = 2000;   // 每次请求响应最大延迟
 let proxyList = [];  // 可用的代理服务器列表
 let proxyListLen = 0; // 可用代理服务器的个数
-const DETAIL_DELAY = 600; // 请求完一个详情页延时
-const LIST_DELAY = 1000;  // 请求完一个列表页延时
-
+const DETAIL_DELAY = 0; // 请求完一个详情页延时
+const IO_DELAY = 10;   // 每次io操作延时
+const IO_ERROR_DELAY = 1000;  // io出错等待时间
+const COMMENT_LIST_ERROR_UP_DELAY = 1000 * 60 * 8; // 请求评论列表页出错次数达到上限
+const COMMENT_LIST_ERROR_DELAY = 1000;    // 请求评论列表页出错
+const DETAIL_ERROR_DELAY = 1000;  // 请求一个帖子列表页出错了
 let successMain = 0;       // 写入车成功的帖子数
 let successComment = 0;   // 成功写入评论数
 
@@ -92,18 +95,18 @@ async function main(pageStart, pageEnd, mainPath, commentPath1,hostpageStart,hos
           let mainId = detailUrl.split('/t-')[1];      // 帖子id
           try {
             let requestDetailPageRes = await requestDetailPage(detailUrl);
-            console.log(`帖子${mainId}写入成功`);
           }catch(e2) {
             console.log('err3')
             console.error(e2);
           }
-          // 请求一条详情页
-          await util.delay(DETAIL_DELAY);
+          
         }
         break;
       } catch(err) {
+        // 请求完一个帖子列表页
+        await util.delay(DETAIL_ERROR_DELAY);
         if(i >= RETRY_NUM -1 ) { // 达到了最大重试次数，还出错
-            console.error(`第${curPageNum}个列表页出错`);
+            console.error(`第${curPageNum}个帖子列表页出错`);
         }
       }
     }
@@ -151,6 +154,8 @@ async function requestDetailPage(href) {
         for(let j = 0; j < RETRY_NUM; j++) {
           try {
             let writeRes = await mainPageWorkBook.xlsx.writeFile(dataPath);
+            successMain++;
+            console.log(`帖子${successMain}--${mainId}写入成功`);
             break;
           }catch(err) {
             if(j >= RETRY_NUM - 1) {
@@ -164,8 +169,8 @@ async function requestDetailPage(href) {
       // 写评论
       try {
         await writeComment(commentPageTotal, mainId);
-        console.log(`帖子${mainId}全部完成`);
-        successMain++;
+        console.log(`帖子${mainId}的全部评论全部完成`);
+
       }catch(e7) {
         console.error(e7);
       }
@@ -188,6 +193,7 @@ async function requestDetailPage(href) {
 async function writeComment(commentPageTotal, mainId) {
   commentPageTotal = commentPageTotal > 200? 200:commentPageTotal;
   for(let curCommentPageNum = 1; curCommentPageNum <= commentPageTotal; curCommentPageNum++) {
+    let rows  = [];     // 一页评论 20条
     for(let i = 0; i < RETRY_NUM; i++) {
       try {
         let comentUrl = DetailPageUrl.replace('###',mainId).replace('$$$', curCommentPageNum)
@@ -220,28 +226,32 @@ async function writeComment(commentPageTotal, mainId) {
           r[3] = pubtime;
           r[4] = content;
           r[5] = floor.substring(0,floor.length-1);
-          commentPage.addRow(r);
-          for(let k = 0; k < RETRY_NUM; k++) {
+          rows.addRow(r);
+          
+        }
+        // 完成一页后写入一次
+        for(let k = 0; k < RETRY_NUM; k++) {
             try {
+              commentPage.addRows(rows);
               let writeRes = await commentWorkBook.xlsx.writeFile(commentPath);
-              console.log(`写评论成功${mainId}-${curCommentPageNum}-${j}`);
-              await util.delay(300);     // 读写io台频繁会出错
-              successComment++;
+              successComment+=20;
+              console.log(`写评论成功${successComment} - ${mainId}-${curCommentPageNum}`);
+              await util.delay(IO_DELAY);     // 读写io台频繁会出错
               break;
             }catch(err) {
               if(k >= RETRY_NUM - 1) {
-                console.error(`写评论出错${mainId}-${curCommentPageNum}-${j}`);
-                await util.delay(1000 * 60 * 5);   // 多等等
+                console.error(`写评论出错${mainId}-${curCommentPageNum}`);
+                await util.delay(IO_ERROR_DELAY);   // 多等等
                 throw new Error(err);
               }
             }
         }
-        }
         break;
       }catch(e) {
-        if(i >= RETRY_NUM - 1) {
-          await util.delay(1000 * 60 * 5);   // 多等等
+        await util.delay(COMMENT_LIST_ERROR_DELAY);
+        if(i >= RETRY_NUM - 1) {      
           console.log(`请求帖子${mainId}的第${curCommentPageNum}页评论列表失败`);
+          await util.delay(COMMENT_LIST_ERROR_UP_DELAY);   // 多等等
           throw new Error(e);
         }
       }
