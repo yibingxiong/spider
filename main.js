@@ -21,7 +21,7 @@ const TIMEOUT = 4000;   // 每次请求响应最大延迟
 let proxyList = [];  // 可用的代理服务器列表
 let proxyListLen = 0; // 可用代理服务器的个数
 const DETAIL_DELAY = 0; // 请求完一个详情页延时
-const IO_DELAY = 1000;   // 每次io操作延时
+const IO_DELAY = 500;   // 每次io操作延时
 const IO_ERROR_DELAY = 1000;  // io出错等待时间
 const COMMENT_LIST_ERROR_UP_DELAY = 1000 * 60 * 8; // 请求评论列表页出错次数达到上限
 const COMMENT_LIST_ERROR_DELAY = 1000;    // 请求评论列表页出错
@@ -113,7 +113,7 @@ async function main(pageStart, pageEnd, mainPath, commentPath1, hostpageStart, h
         }
       }
     }
-    console.log(`第${curPageNum}页帖子完成！`);
+    console.log(`---------第${curPageNum}页帖子完成------！`);
   }
   return { successMain, successComment };
 }
@@ -194,7 +194,7 @@ async function requestDetailPage(href) {
  * @param {string} mainId 帖子id
  */
 async function writeComment(commentPageTotal, mainId) {
-  let cp = util.getRandomN(commentPageTotal, 50);
+  let cp = util.getRandomN(commentPageTotal, 10);
   let len = cp.length;
   for (let nn = 0; nn < len; nn++) {
     let rows = [];     // 一页评论 20条
