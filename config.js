@@ -26,5 +26,5 @@ module.exports = {
         'http://www.bianbao.net/',
         'http://www.lajiz.cn/'
     ],
-    localProxy:'http://192.168.1.106:8888'
+    localProxy:'http://192.168.1.107:8888'
 }
